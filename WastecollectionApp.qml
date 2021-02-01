@@ -296,7 +296,8 @@ App {
 			readIok();
 		}
 		if (wasteCollector == "10") {
-			readCureAfvalbeheer();
+			//readCureAfvalbeheer();
+			readLimburgNet()
 		}
 		if (wasteCollector == "11") {
 			readDenHaag();
@@ -561,12 +562,12 @@ App {
 	function wasteTypeLimburgNet(shortName) {
 		switch (shortName) {
 			case "kun": return 9;		//kunststoffen
-			case "hui": return 0;		//huisvuil
+			case "Hui": return 0;		//huisvuil
 			case "tui": return 4;		//tuin en snoeiafval
 			case "gro": return 8;		//grofvuil
-			case "pap": return 2;		//papier en karton
-			case "tex": return 5;		//textiel
-			case "pmd": return 1;		//plastic metaal drankpakken
+			case "Pap": return 2;		//papier en karton
+			case "Tex": return 5;		//textiel
+			case "Pmd": return 1;		//plastic metaal drankpakken
 			default: break;
 		}
 		return "?";
@@ -1033,6 +1034,49 @@ App {
 		xmlhttp.open("GET", "http://www.afvalwijzer-arnhem.nl/GenerateICal.ashx?ZipCode=" + wasteZipcode + "&HouseNumber=" + wasteHouseNr + "&HouseNumberAddition=&categories=", true);
 		xmlhttp.send();
 	}
+
+		function readLimburgNet() {
+
+		var i = 0;
+		var j = 0;
+		wasteDatesString = "";
+		var wasteType = "";
+		var cureAfvalbeheerDates = [];
+
+		var xmlhttp = new XMLHttpRequest();
+		xmlhttp.onreadystatechange = function() {
+			if (xmlhttp.readyState == XMLHttpRequest.DONE) {
+				var aNode = xmlhttp.responseText;
+
+				// read specific waste collection dates
+
+				j = aNode.indexOf("BEGIN:VEVENT");
+				i = aNode.indexOf("DTSTART",j);
+
+				if ( i > 0 ) {
+					while (i > 0) {
+						j = aNode.indexOf("SUMMARY", i);
+
+						wasteType = wasteTypeLimburgNet(aNode.substring(j+8, j+11));
+						cureAfvalbeheerDates.push(aNode.substring(i+19, i+23) + "-" + aNode.substring(i+23, i+25) + "-" + aNode.substring(i+25, i+27) + "," + wasteType);
+						i = aNode.indexOf("DTSTART", i + 10);
+					}
+				}
+				var tmp = WastecollectionJS.sortArray2(cureAfvalbeheerDates, extraDates);
+
+				for (i = 0; i < tmp.length; i++) {
+					wasteDatesString = wasteDatesString + tmp[i] + "\n";
+				}
+				writeWasteDates();
+			}
+		}
+
+		// https://limburg.net/api-proxy/public/kalender-download/ical/72037?straatNummer=33122&huisNummer=16&toevoeging=&includeAllEventTypes=1&eventTypes[]=8&eventTypes[]=14&eventTypes[]=15&eventTypes[]=16&eventTypes[]=17
+		// xmlhttp.open("GET", "http://www.limburg.net/ics/afvalkalender/" + wasteZipcode + "/" + wasteStreet + "/" + wasteHouseNr + "/0", true);
+		xmlhttp.open("GET", "https://limburg.net/api-proxy/public/kalender-download/ical/72037?straatNummer=" + wasteStreet + "&huisNummer=" + wasteHouseNr + "&toevoeging=&includeAllEventTypes=1&eventTypes[]=8&eventTypes[]=14&eventTypes[]=15&eventTypes[]=16&eventTypes[]=17", true);
+		xmlhttp.send();
+	}
+
 
 	function formatDate(date) {
     		var d = new Date(date),
